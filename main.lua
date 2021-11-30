@@ -46,17 +46,15 @@ function love.draw()
 
 	-- player
 	love.graphics.setColour(1,1,1)
-	love.graphics.rectangle("fill", player.x, player.y, player.w, player.h)
-	local s = math.sin(intro.timer)
-	local c = math.cos(intro.timer)
+
 	local x = player.x + player.w/2
 	local y = player.y + player.h/2
-	love.graphics.polygon("fill"
-	, x + s*-player.w/2 + c*-player.h/2, y + c*-player.w/2 + s*-player.h/2
-	, x + s*player.w/2 + c*-player.h/2, y + c*player.w/2 + s*-player.h/2
-	, x + s*player.w/2 + c*player.h/2, y + c*player.w/2 + s*player.h/2
-	, x + s*-player.w/2 + c*player.h/2, y + c*-player.w/2 + s*player.h/2
-	)
+
+	love.graphics.push()
+	love.graphics.translate(x, y)	
+	love.graphics.rotate(player.xV)
+	love.graphics.rectangle("fill", -player.w/2, -player.h/2, player.w, player.h)
+	love.graphics.pop()
 
 	-- intro
 	intro:draw()
