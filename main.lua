@@ -1,7 +1,7 @@
 local intro = require "intro" 
 local map = require "map"
 
-local player={x=514, y=360, w=20, h=40, xV = 0, yV = 0, r = 0, legWheel=0}
+local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0}
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
@@ -15,10 +15,11 @@ local function IK(p1x, p1y, l1, p2x, p2y, l2) --p1 is the foundation node, p2 is
 		local theta = math.atan2((p2x - p1x), (p2y - p1y)) --finding angle of l1 and l2
 		return p1x, p1y --[[]](math.sin(theta)*l1)+p1x, (math.cos(theta)*l1)+p1y, --[[]](math.sin(theta)*(l1+l2))+p1x, (math.cos(theta)*(l1+l2))+p1y	
 	else --else run the inverse kinematics taken from (https://github.com/lost-in-thoughts/ik-spider/blob/main/leg.lua)
-	local cosAngle0 = ((dist * dist) + (l1 * l1) - (l2 * l2)) / (2 * dist * l1)
-	local theta1 = atan - math.acos(cosAngle0)
+		local cosAngle0 = ((dist * dist) + (l1 * l1) - (l2 * l2)) / (2 * dist * l1)
+		local theta1 = atan - math.acos(cosAngle0)
 
-	return p1x, p1y, (math.cos(theta1)*l1)+p1x, (math.sin(theta1)*l1)+p1y, p2x, p2y}
+		return p1x, p1y, (math.cos(theta1)*l1)+p1x, (math.sin(theta1)*l1)+p1y, p2x, p2y
+	end
 end
 
 function love.update(dt)
@@ -77,7 +78,7 @@ function love.draw()
 	player.legWheel = player.legWheel + player.xV/60*math.pi
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi+math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+math.sin(player.legWheel)*player.xV/5)*14)
-	-- love.graphics.setColour(1,0,0)
+	love.graphics.setColour(1,1,1,0.5)
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi-math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r-math.sin(player.legWheel)*player.xV/5)*14)
 
 	-- intro
