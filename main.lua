@@ -22,6 +22,10 @@ local function inverseKinematics(p1x, p1y, l1, p2x, p2y, l2) --p1 is the foundat
 	end
 end
 
+local function sign(number)
+	return (number > 0 and 1) or (number == 0 and 0) or -1
+end
+
 function love.update(dt)
 	-- player
 	player.yV = player.yV + 0.8 -- gravity is 0.5
@@ -77,14 +81,16 @@ function love.draw()
 	love.graphics.line(x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6, x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13)
 	
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
+	local dir = sign(math.cos(player.legWheel)*player.xV/5)
+	love.graphics.setColour(1,1,1,1*dir)
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi+math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+math.sin(player.legWheel)*player.xV/5)*14)
-	love.graphics.setColour(1,1,1,0.5)
+	love.graphics.setColour(1,1,1,-1*dir)
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi-math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r-math.sin(player.legWheel)*player.xV/5)*14)
 
 	local upsideX, upsideY = 
 	x+math.sin(player.r+math.pi-1*player.xV/5)*14 +math.sin(player.r+math.pi+1*player.xV/5)*14,
 	y+math.cos(player.r-1*player.xV/5)*14 +math.cos(player.r+1*player.xV/5)*14
-	love.graphics.circle("fill", upsideX, upsideY, 10)
+	-- love.graphics.circle("fill", upsideX, upsideY, 10)
 
 
 	-- intro
@@ -92,11 +98,16 @@ function love.draw()
 
 	-- test
 	-- love.graphics.line(inverseKinematics(400, 300, 100, love.mouse.getX(), love.mouse.getY(), 100))
+	love.graphics.setColour(1,0,0)
+	if math.cos(player.legWheel)*player.xV/5 < 0 then love.graphics.setColour(0,0, 1) end
+	love.graphics.circle("fill", 200+player.r+math.pi+math.sin(player.legWheel)*player.xV/5*100, 100, 10)
 end
 
 function love.keypressed(k)
 	if k == "r" then
 		player.x = 514
 		player.y = 360
+		player.xV = 0
+		player.yV = 0
 	end	
 end
