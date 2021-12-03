@@ -35,12 +35,12 @@ function love.update(dt)
 	-- player
 	player.yV = player.yV + 0.8 -- gravity is 0.5
 	player.xV = player.xV * 0.87--(1 / (1 + (dt * 8)))
-	player.legWheel = player.legWheel + player.xV/80*math.pi
+	player.legWheel = player.legWheel + 15/180*math.pi*sign(player.xV)--player.xV/80*math.pi
 	if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
 		player.xV = player.xV - 1
 	end
 	if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-		player.xV = player.xV + 1
+		player.xV = player.xV + 0.5
 	end
 	player.x = player.x + player.xV
 	player.y = player.y + player.yV
@@ -90,7 +90,13 @@ function love.draw()
 	local footX = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
 	local footY = lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) 
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14)
-	love.graphics.line(x,y, footX, footY)
+	-- love.graphics.line(x,y, footX, footY)
+
+	if player.xV > 0 then 
+		love.graphics.line(inverseKinematics(x,y,7,7,footX,footY))
+	else 
+		love.graphics.line(inverseKinematics(footX,footY,7,7,x,y))
+	end
 
 	-- intro
 	intro:draw()
@@ -104,7 +110,7 @@ function love.draw()
 	-- love.graphics.line(x+math.sin(player.r+math.pi+1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14,
 	 -- x+math.sin(player.r+math.pi-1*player.xV/5)*14,y+math.cos(player.r-1*player.xV/5)*14)
 
-	 love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y, 3)
+	 -- love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) , 3)
 end
 
 function love.keypressed(k)
