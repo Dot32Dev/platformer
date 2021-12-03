@@ -5,10 +5,10 @@ local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0}
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
-love.graphics.setLineJoin("bevel")
+love.graphics.setLineJoin("none")
 intro:init()
 
-local function inverseKinematics(p1x, p1y, l1, p2x, p2y, l2) --p1 is the foundation node, p2 is the goal node, l1/l2 are the lengths of each segment
+local function inverseKinematics(p1x, p1y, l1, l2, p2x, p2y) --p1 is the foundation node, p2 is the goal node, l1/l2 are the lengths of each segment
 	local dist = intro.distanceBetween(p1x, p1y, p2x, p2y)
 	local atan = math.atan2(p2y-p1y, p2x-p1x)
 
@@ -35,11 +35,11 @@ function love.update(dt)
 	-- player
 	player.yV = player.yV + 0.8 -- gravity is 0.5
 	player.xV = player.xV * 0.87--(1 / (1 + (dt * 8)))
-	player.legWheel = player.legWheel + player.xV/60*math.pi
-	if love.keyboard.isDown("a") then
+	player.legWheel = player.legWheel + player.xV/80*math.pi
+	if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
 		player.xV = player.xV - 1
 	end
-	if love.keyboard.isDown("d") then
+	if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
 		player.xV = player.xV + 1
 	end
 	player.x = player.x + player.xV
@@ -51,7 +51,7 @@ function love.update(dt)
 				player.y = (player.y < rect.y and rect.y - player.h) or (player.y > rect.y+rect.h-player.y and rect.y+rect.h) or player.y
 				player.yV = 0
 				player.r = player.xV/25
-				if love.keyboard.isDown("w") and not (player.y == rect.y+rect.h) then
+				if (love.keyboard.isDown("w") or love.keyboard.isDown("up")) and not (player.y == rect.y+rect.h) then
 					player.yV = player.yV - 16
 				end
 			else
@@ -82,38 +82,29 @@ function love.draw()
 	-- love.graphics.rectangle("fill", -player.w/2, -player.h/2, player.w, player.h)
 	love.graphics.pop()
 	-- love.graphics.setColour(0,0,0)
-	love.graphics.circle("fill", x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13,7)
+	love.graphics.circle("fill", x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13,7, 21)
 	love.graphics.line(x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6, x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13)
 	
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
-	local dir = sign(math.cos(player.legWheel)*player.xV/5)
-
-	love.graphics.setColour(1,1,1,1*dir)
-	love.graphics.line(x,y, x+math.sin(player.r+math.pi+math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+math.sin(player.legWheel)*player.xV/5)*14)
-	love.graphics.line(x,y, 
-		lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5),
-		lerp(y+math.cos(player.r+1*player.xV/5)*14, y+math.cos(player.r-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5))
-
-	love.graphics.setColour(1,1,1,-1*dir)
-	love.graphics.line(x,y, x+math.sin(player.r+math.pi-math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r-math.sin(player.legWheel)*player.xV/5)*14)
-	love.graphics.line(x,y, 
-		lerp(x+math.sin(player.r+math.pi-1*player.xV/5)*14, x+math.sin(player.r+math.pi+1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5),
-		lerp(y+math.cos(player.r-1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5))
-
+	local dir = sign(math.cos(player.legWheel)*player.xV)
+	local footX = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
+	local footY = lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) 
+	love.graphics.line(x,y, x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14)
+	love.graphics.line(x,y, footX, footY)
 
 	-- intro
 	intro:draw()
 
 	-- test
-	-- love.graphics.line(inverseKinematics(400, 300, 100, love.mouse.getX(), love.mouse.getY(), 100))
 	love.graphics.setColour(1,0,0)
+	-- love.graphics.line(inverseKinematics(400, 300, 100, 100, love.mouse.getX(), love.mouse.getY()))
 	-- if math.cos(player.legWheel)*player.xV/5 < 0 then love.graphics.setColour(0,0, 1) end
 	-- love.graphics.circle("fill", 200+player.r+math.pi+math.sin(player.legWheel)*player.xV/5*100, 100, 10)
 	-- love.graphics.line()
 	-- love.graphics.line(x+math.sin(player.r+math.pi+1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14,
 	 -- x+math.sin(player.r+math.pi-1*player.xV/5)*14,y+math.cos(player.r-1*player.xV/5)*14)
 
-	 -- love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y, 3)
+	 love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y, 3)
 end
 
 function love.keypressed(k)
