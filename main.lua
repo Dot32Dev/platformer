@@ -5,6 +5,7 @@ local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0}
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
+love.graphics.setLineJoin("bevel")
 intro:init()
 
 local function inverseKinematics(p1x, p1y, l1, p2x, p2y, l2) --p1 is the foundation node, p2 is the goal node, l1/l2 are the lengths of each segment
@@ -16,14 +17,18 @@ local function inverseKinematics(p1x, p1y, l1, p2x, p2y, l2) --p1 is the foundat
 		return p1x, p1y, --[[]](math.sin(theta)*l1)+p1x, (math.cos(theta)*l1)+p1y, --[[]](math.sin(theta)*(l1+l2))+p1x, (math.cos(theta)*(l1+l2))+p1y	
 	else --else run the inverse kinematics taken from (https://github.com/lost-in-thoughts/ik-spider/blob/main/leg.lua)
 		local cosAngle0 = ((dist * dist) + (l1 * l1) - (l2 * l2)) / (2 * dist * l1)
-		local theta1 = atan - math.acos(cosAngle0)
+		local theta = atan - math.acos(cosAngle0)
 
-		return p1x, p1y, (math.cos(theta1)*l1)+p1x, (math.sin(theta1)*l1)+p1y, p2x, p2y
+		return p1x, p1y, math.cos(theta)*l1 + p1x, math.sin(theta)*l1 + p1y, p2x, p2y
 	end
 end
 
 local function sign(number)
-	return (number > 0 and 1) or (number == 0 and 0) or -1
+	return (number > 0 and 1) or -1
+end
+
+local function lerp(a, b, t) 
+	return (b-a)*t+a
 end
 
 function love.update(dt)
@@ -82,15 +87,18 @@ function love.draw()
 	
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
 	local dir = sign(math.cos(player.legWheel)*player.xV/5)
+
 	love.graphics.setColour(1,1,1,1*dir)
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi+math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+math.sin(player.legWheel)*player.xV/5)*14)
+	love.graphics.line(x,y, 
+		lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5),
+		lerp(y+math.cos(player.r+1*player.xV/5)*14, y+math.cos(player.r-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5))
+
 	love.graphics.setColour(1,1,1,-1*dir)
 	love.graphics.line(x,y, x+math.sin(player.r+math.pi-math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r-math.sin(player.legWheel)*player.xV/5)*14)
-
-	local upsideX, upsideY = 
-	x+math.sin(player.r+math.pi-1*player.xV/5)*14 +math.sin(player.r+math.pi+1*player.xV/5)*14,
-	y+math.cos(player.r-1*player.xV/5)*14 +math.cos(player.r+1*player.xV/5)*14
-	-- love.graphics.circle("fill", upsideX, upsideY, 10)
+	love.graphics.line(x,y, 
+		lerp(x+math.sin(player.r+math.pi-1*player.xV/5)*14, x+math.sin(player.r+math.pi+1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5),
+		lerp(y+math.cos(player.r-1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5))
 
 
 	-- intro
@@ -99,8 +107,13 @@ function love.draw()
 	-- test
 	-- love.graphics.line(inverseKinematics(400, 300, 100, love.mouse.getX(), love.mouse.getY(), 100))
 	love.graphics.setColour(1,0,0)
-	if math.cos(player.legWheel)*player.xV/5 < 0 then love.graphics.setColour(0,0, 1) end
-	love.graphics.circle("fill", 200+player.r+math.pi+math.sin(player.legWheel)*player.xV/5*100, 100, 10)
+	-- if math.cos(player.legWheel)*player.xV/5 < 0 then love.graphics.setColour(0,0, 1) end
+	-- love.graphics.circle("fill", 200+player.r+math.pi+math.sin(player.legWheel)*player.xV/5*100, 100, 10)
+	-- love.graphics.line()
+	-- love.graphics.line(x+math.sin(player.r+math.pi+1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14,
+	 -- x+math.sin(player.r+math.pi-1*player.xV/5)*14,y+math.cos(player.r-1*player.xV/5)*14)
+
+	 -- love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+1*player.xV/5)*14, x+math.sin(player.r+math.pi-1*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y, 3)
 end
 
 function love.keypressed(k)
