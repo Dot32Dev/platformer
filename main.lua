@@ -1,7 +1,7 @@
 local intro = require "intro" 
 local map = require "map"
 
-local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0}
+local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0, groundTime = 0}
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
@@ -10,13 +10,13 @@ intro:init()
 
 local function inverseKinematics(p1x, p1y, l1, l2, p2x, p2y) --p1 is the foundation node, p2 is the goal node, l1/l2 are the lengths of each segment
 	local dist = intro.distanceBetween(p1x, p1y, p2x, p2y)
-	local atan = math.atan2(p2y-p1y, p2x-p1x)
 
 	if dist > l1+l2 then --if the mouse is too far away then
 		local theta = math.atan2((p2x - p1x), (p2y - p1y)) --finding angle of l1 and l2
 		return p1x, p1y, --[[]](math.sin(theta)*l1)+p1x, (math.cos(theta)*l1)+p1y, --[[]](math.sin(theta)*(l1+l2))+p1x, (math.cos(theta)*(l1+l2))+p1y	
 	else --else run the inverse kinematics taken from (https://github.com/lost-in-thoughts/ik-spider/blob/main/leg.lua)
 		local cosAngle0 = ((dist * dist) + (l1 * l1) - (l2 * l2)) / (2 * dist * l1)
+		local atan = math.atan2(p2y-p1y, p2x-p1x)
 		local theta = atan - math.acos(cosAngle0)
 
 		return p1x, p1y, math.cos(theta)*l1 + p1x, math.sin(theta)*l1 + p1y, p2x, p2y
@@ -35,30 +35,38 @@ function love.update(dt)
 	-- player
 	player.yV = player.yV + 0.8 -- gravity is 0.5
 	player.xV = player.xV * 0.87--(1 / (1 + (dt * 8)))
-	player.legWheel = player.legWheel + 15/180*math.pi*sign(player.xV)--player.xV/80*math.pi
 	if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
 		player.xV = player.xV - 1
 	end
 	if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-		player.xV = player.xV + 0.5
+		player.xV = player.xV + 1
 	end
 	player.x = player.x + player.xV
 	player.y = player.y + player.yV
-	player.r = (player.xV*1.5*math.min(1, math.max(-1, player.yV/-7)))/15
+	local colided = false
 	for i, rect in ipairs(map) do
 		if player.x+player.w > rect.x and player.x < rect.x + rect.w and player.y+player.h > rect.y and player.y < rect.y + rect.h then
 			if (player.x - player.xV)+player.w > rect.x and (player.x - player.xV) < rect.x + rect.w then 
 				player.y = (player.y < rect.y and rect.y - player.h) or (player.y > rect.y+rect.h-player.y and rect.y+rect.h) or player.y
 				player.yV = 0
 				player.r = player.xV/25
+				player.groundTime = player.groundTime + 1
+				player.legWheel = player.legWheel + 15/180*math.pi*sign(player.xV)--player.xV/80*math.pi
 				if (love.keyboard.isDown("w") or love.keyboard.isDown("up")) and not (player.y == rect.y+rect.h) then
 					player.yV = player.yV - 16
 				end
+				colided = true
 			else
 				player.x = (player.x < rect.x and rect.x - player.w) or (player.x > rect.x+rect.w-player.x and rect.x+rect.w) or player.x
 				player.xV = 0
 			end
 		end
+	end
+	if not colided then
+		player.legWheel = player.legWheel % math.pi
+		player.legWheel = player.legWheel * 0.9
+		player.r = (player.xV*0.8*math.min(1, math.max(-1, player.yV/-7)))/15
+		player.groundTime = 0
 	end
 
 	-- intro
@@ -89,7 +97,7 @@ function love.draw()
 	local dir = sign(math.cos(player.legWheel)*player.xV)
 	local footX = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
 	local footY = lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) 
-	love.graphics.line(x,y, x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14)
+	love.graphics.line(x,y, x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14)	
 	-- love.graphics.line(x,y, footX, footY)
 
 	if player.xV > 0 then 
