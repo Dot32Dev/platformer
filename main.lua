@@ -1,7 +1,7 @@
 local intro = require "intro" 
 local map = require "map"
 
-local player={x=514, y=360, w=10, h=40, xV = 0, yV = 0, r = 0, legWheel=0, groundTime = 0}
+local player={x=514, y=360, w=10, h=40, xV = 1, yV = 0, r = 0, legWheel=0, groundTime = 0, crouch = 0}
 local ConnectedController = false
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
@@ -16,7 +16,7 @@ local function inverseKinematics(p1x, p1y, l1, l2, p2x, p2y, direction) --p1 is 
 		local p3x, p3y = p1x, p1y
 		p1x, p1y = p2x, p2y
 		p2x, p2y = p3x, p3y
-		print(math.floor(p1x), math.floor(p1y), "|", math.floor(p2x), math.floor(p2y))
+		-- print(math.floor(p1x), math.floor(p1y), "|", math.floor(p2x), math.floor(p2y))
 	end
 
 	local dist = intro.distanceBetween(p1x, p1y, p2x, p2y)
@@ -34,7 +34,7 @@ local function inverseKinematics(p1x, p1y, l1, l2, p2x, p2y, direction) --p1 is 
 end
 
 local function sign(number)
-	return (number > 0 and 1) or -1
+	return (number < 0 and -1) or 1
 end
 
 local function lerp(a, b, t) 
@@ -52,6 +52,7 @@ function love.update(dt)
 	-- player
 	player.yV = player.yV + 0.8 -- gravity is 0.5
 	player.xV = player.xV * 0.87--(1 / (1 + (dt * 8)))
+	player.crouch = player.crouch *0.8
 
 	local inputX = (ConnectedController and ConnectedController:getGamepadAxis("leftx")) or 0
 
@@ -70,9 +71,10 @@ function love.update(dt)
 		if player.x+player.w > rect.x and player.x < rect.x + rect.w and player.y+player.h > rect.y and player.y < rect.y + rect.h then
 			if (player.x - player.xV)+player.w > rect.x and (player.x - player.xV) < rect.x + rect.w then 
 				player.y = (player.y < rect.y and rect.y - player.h) or (player.y > rect.y+rect.h-player.y and rect.y+rect.h) or player.y
+				player.crouch = math.max(player.crouch, (player.yV-1)/2)
 				player.yV = 0
 
-				player.r = player.xV/25
+				player.r = player.xV/25*math.max(1, player.crouch)
 				player.groundTime = player.groundTime + 1
 				player.legWheel = player.legWheel + 15/180*math.pi*sign(player.xV)--player.xV/80*math.pi
 
@@ -99,6 +101,7 @@ function love.update(dt)
 		resetPlayer()
 	end
 
+
 	-- intro
 	intro:update(dt)
 end
@@ -113,24 +116,28 @@ function love.draw()
 	-- player
 	love.graphics.setColour(1,1,1)
 	local x = player.x + player.w/2
-	local y = player.y + player.h/2
+	local y = player.y + player.h/2 + player.crouch
 	love.graphics.push()
 	love.graphics.translate(x, y)	
 	love.graphics.rotate(player.r)
 	-- love.graphics.rectangle("fill", -player.w/2, -player.h/2, player.w, player.h)
 	love.graphics.pop()
 	-- love.graphics.setColour(0,0,0)
-	love.graphics.circle("fill", x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13,7, 21)
-	love.graphics.line(x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6, x+math.sin(player.r+math.pi)*-13,y+math.cos(player.r)*-13)
+	love.graphics.circle("fill", x+math.sin(player.r+math.pi+player.crouch/15*sign(player.xV))*-(13-player.crouch),y+math.cos(player.r+player.crouch/15*sign(player.xV))*-(13-player.crouch),7, 21)
+	love.graphics.line(x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6, x+math.sin(player.r+math.pi)*-(13-player.crouch),y+math.cos(player.r)*-(13-player.crouch))
 	
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
 	local dir = sign(math.cos(player.legWheel)*player.xV)
-	local footX = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
-	local footY = lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) 
-	love.graphics.line(x,y, x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14,y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14)	
-	-- love.graphics.line(x,y, footX, footY)
 
-	love.graphics.line(inverseKinematics(footX,footY,7,7,x,y, player.xV))
+	--[[foot 1 is the leg higher in the air, and foot 2 is the leg touching the ground/opposite of foot1]]
+	local foot1X = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
+	local foot1Y = math.min(lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y+14-player.crouch)
+	love.graphics.line(inverseKinematics(foot1X,foot1Y,7,7,x,y, player.xV))
+
+	local foot2X = x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14
+	local foot2Y = math.min(y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14, y+14-player.crouch)
+	love.graphics.line(inverseKinematics(x,y, 7,7, foot2X,foot2Y, -player.xV))
+	-- love.graphics.line(x,y, foot1X, foot1Y)
 
 	-- intro
 	intro:draw()
