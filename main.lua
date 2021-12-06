@@ -1,7 +1,7 @@
 local intro = require "intro" 
 local map = require "map"
 
-local player={x=514, y=360, w=10, h=40, xV = 1, yV = 0, r = 0, legWheel=0, groundTime = 0, crouch = 0}
+local player={w=10, h=40, r = 0, legWheel=0, groundTime = 0, airTime = 0, crouch = 0}
 local ConnectedController = false
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
@@ -44,9 +44,10 @@ end
 local function resetPlayer()
 	player.x = 514
 	player.y = 360
-	player.xV = 0
+	player.xV = 2
 	player.yV = 0
 end 
+resetPlayer()
 
 function love.update(dt)
 	-- player
@@ -71,16 +72,17 @@ function love.update(dt)
 		if player.x+player.w > rect.x and player.x < rect.x + rect.w and player.y+player.h > rect.y and player.y < rect.y + rect.h then
 			if (player.x - player.xV)+player.w > rect.x and (player.x - player.xV) < rect.x + rect.w then 
 				player.y = (player.y < rect.y and rect.y - player.h) or (player.y > rect.y+rect.h-player.y and rect.y+rect.h) or player.y
-				player.crouch = math.max(player.crouch, (player.yV-1)/2)
+				player.crouch = math.max(player.crouch, (player.yV-1)/1.5)
 				player.yV = 0
 
-				player.r = player.xV/25*math.max(1, player.crouch)
+				player.r = player.xV/25 --+ (player.xV*0.8*math.min(1, math.max(-1, player.crouch*2/-7)))/15
 				player.groundTime = player.groundTime + 1
 				player.legWheel = player.legWheel + 15/180*math.pi*sign(player.xV)--player.xV/80*math.pi
 
 				if (love.keyboard.isDown("w") or love.keyboard.isDown("up") or (ConnectedController and ConnectedController:isGamepadDown("a", "y"))) 
 				and not (player.y == rect.y+rect.h) then
 					player.yV = player.yV - 16
+					player.crouch = math.max(player.crouch, math.abs(player.yV+1)/1.5)
 				end
 
 				colided = true
@@ -101,18 +103,11 @@ function love.update(dt)
 		resetPlayer()
 	end
 
-
 	-- intro
 	intro:update(dt)
 end
 
 function love.draw()
-	-- ground
-	love.graphics.setColour(intro.HSL(220/360, 0.5, 0.4))
-	for i, rect in ipairs(map) do
-		love.graphics.rectangle("fill", rect.x, rect.y, rect.w, rect.h)
-	end
-
 	-- player
 	love.graphics.setColour(1,1,1)
 	local x = player.x + player.w/2
@@ -123,21 +118,27 @@ function love.draw()
 	-- love.graphics.rectangle("fill", -player.w/2, -player.h/2, player.w, player.h)
 	love.graphics.pop()
 	-- love.graphics.setColour(0,0,0)
-	love.graphics.circle("fill", x+math.sin(player.r+math.pi+player.crouch/15*sign(player.xV))*-(13-player.crouch),y+math.cos(player.r+player.crouch/15*sign(player.xV))*-(13-player.crouch),7, 21)
+	love.graphics.circle("fill", x+math.sin(player.r+math.pi)*-(13-player.crouch/2),y+math.cos(player.r)*-(13-player.crouch/2),7, 21)
 	love.graphics.line(x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6, x+math.sin(player.r+math.pi)*-(13-player.crouch),y+math.cos(player.r)*-(13-player.crouch))
 	
 	x,y = x+math.sin(player.r+math.pi)*6,y+math.cos(player.r)*6
 	local dir = sign(math.cos(player.legWheel)*player.xV)
 
 	--[[foot 1 is the leg higher in the air, and foot 2 is the leg touching the ground/opposite of foot1]]
-	local foot1X = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5)
+	local foot1X = lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) +player.crouch
 	local foot1Y = math.min(lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), y+14-player.crouch)
 	love.graphics.line(inverseKinematics(foot1X,foot1Y,7,7,x,y, player.xV))
 
-	local foot2X = x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14
+	local foot2X = x+math.sin(player.r+math.pi+dir*math.sin(player.legWheel)*player.xV/5)*14 -player.crouch
 	local foot2Y = math.min(y+math.cos(player.r+dir*math.sin(player.legWheel)*player.xV/5)*14, y+14-player.crouch)
 	love.graphics.line(inverseKinematics(x,y, 7,7, foot2X,foot2Y, -player.xV))
 	-- love.graphics.line(x,y, foot1X, foot1Y)
+
+	-- ground
+	love.graphics.setColour(intro.HSL(220/360, 0.5, 0.4))
+	for i, rect in ipairs(map) do
+		love.graphics.rectangle("fill", rect.x, rect.y, rect.w, rect.h)
+	end
 
 	-- intro
 	intro:draw()
