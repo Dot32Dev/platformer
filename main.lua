@@ -1,8 +1,9 @@
-local intro = require "intro" 
+local intro = require "intro"  
 local map = require "map"
 
 local player={w=10, h=40, r = 0, legWheel=0, groundTime = 0, airTime = 0, crouch = 0}
 local ConnectedController = false
+local zoom = 1
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
@@ -108,6 +109,8 @@ function love.update(dt)
 end
 
 function love.draw()
+	love.graphics.push()
+	love.graphics.scale(zoom)
 	-- player
 	love.graphics.setColour(1,1,1)
 	local x = player.x + player.w/2
@@ -140,20 +143,21 @@ function love.draw()
 		love.graphics.rectangle("fill", rect.x, rect.y, rect.w, rect.h)
 	end
 
+	love.graphics.pop()
 	-- intro
 	intro:draw()
 
 	-- test
-	-- love.graphics.setColour(1,0,0)
+	love.graphics.setColour(1,0,0)
 	-- love.graphics.line(inverseKinematics(400, 300, 100, 100, love.mouse.getX(), love.mouse.getY()))
 	-- if math.cos(player.legWheel)*player.xV/5 < 0 then love.graphics.setColour(0,0, 1) end
 	-- love.graphics.circle("fill", 200+player.r+math.pi+math.sin(player.legWheel)*player.xV/5*100, 100, 10)
 	-- love.graphics.line()
 	-- love.graphics.line(x+math.sin(player.r+math.pi+1*player.xV/5)*14, y+math.cos(player.r+1*player.xV/5)*14,
-	 -- x+math.sin(player.r+math.pi-1*player.xV/5)*14,y+math.cos(player.r-1*player.xV/5)*14)
+	-- x+math.sin(player.r+math.pi-1*player.xV/5)*14,y+math.cos(player.r-1*player.xV/5)*14)
 
-	 -- love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) , 3)
-	 if ConnectedController then love.graphics.print(ConnectedController:getName()) end
+	-- love.graphics.circle("fill", lerp(x+math.sin(player.r+math.pi+dir*player.xV/5)*14, x+math.sin(player.r+math.pi-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5), lerp(y+math.cos(player.r+dir*player.xV/5)*14, y+math.cos(player.r-dir*player.xV/5)*14, (math.sin(player.legWheel)+1)*0.5) , 3)
+	if ConnectedController then love.graphics.print(ConnectedController:getName()) end
 end
 
 function love.keypressed(k)
@@ -171,4 +175,8 @@ function love.joystickremoved(j)
 	if j == ConnectedController then
 		ConnectedController = false
 	end
+end
+
+function love.resize(w,h)
+	zoom = math.min(w/1280, h/720)
 end
