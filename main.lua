@@ -4,6 +4,9 @@ local map = require "map"
 local player={w=10, h=40, r = 0, legWheel=0, groundTime = 0, airTime = 0, crouch = 0}
 local ConnectedController = false
 local zoom = 1
+local screenWidth = 1280
+local screenHeight = 720
+local camera = {x=0, y=0}
 
 love.graphics.setBackgroundColor(intro.HSL(220/360, 0.5, 0.1))
 love.graphics.setLineWidth(5)
@@ -68,6 +71,9 @@ function love.update(dt)
 	player.x = player.x + player.xV
 	player.y = player.y + player.yV
 
+	camera.x = camera.x + (player.x - camera.x)*0.1
+	camera.y = 360--camera.y + ((player.y - 150) - camera.y)*0.1
+
 	local colided = false
 	for i, rect in ipairs(map) do
 		if player.x+player.w > rect.x and player.x < rect.x + rect.w and player.y+player.h > rect.y and player.y < rect.y + rect.h then
@@ -110,8 +116,9 @@ end
 
 function love.draw()
 	love.graphics.push()
-	love.graphics.translate(love.graphics.getWidth()/2 - 1280*zoom/2, love.graphics.getHeight()/2 - 720*zoom/2)
+	love.graphics.translate(love.graphics.getWidth()/2 - screenWidth*zoom/2, love.graphics.getHeight()/2 - screenHeight*zoom/2)
 	love.graphics.scale(zoom)
+	love.graphics.translate(-(camera.x-screenWidth/2), -(camera.y-screenHeight/2))
 	-- player
 	love.graphics.setColour(1,1,1)
 	local x = player.x + player.w/2
@@ -181,5 +188,5 @@ function love.joystickremoved(j)
 end
 
 function love.resize(w,h)
-	zoom = math.min(w/1280, h/720)
+	zoom = math.min(w/screenWidth, h/screenHeight)
 end
